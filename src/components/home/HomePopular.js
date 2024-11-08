@@ -1,4 +1,3 @@
-// src/components/home/HomePopular.js
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTh, faBars, faFilter } from '@fortawesome/free-solid-svg-icons';
@@ -7,34 +6,11 @@ import MovieInfiniteScroll from '../common/MovieInfiniteScroll';
 
 const HomePopular = () => {
   const [currentView, setCurrentView] = useState('grid');
-  const [showFilters, setShowFilters] = useState(false);
   const [selectedGenre, setSelectedGenre] = useState('all');
   const [selectedYear, setSelectedYear] = useState('all');
+  const [movies, setMovies] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const apiKey = localStorage.getItem('TMDb-Key') || '';
-
-  // 스크롤 위치 저장
-  useEffect(() => {
-    const savedScrollPosition = sessionStorage.getItem('popularScrollPosition');
-    if (savedScrollPosition) {
-      window.scrollTo(0, parseInt(savedScrollPosition));
-    }
-    
-    const handleScroll = () => {
-      sessionStorage.setItem('popularScrollPosition', window.scrollY.toString());
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const setView = (view) => {
-    setCurrentView(view);
-    if (view === 'grid') {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'auto';
-    }
-  };
 
   const genres = [
     { id: 'all', name: '전체' },
@@ -53,30 +29,68 @@ const HomePopular = () => {
     { id: '2021', name: '2021' },
   ];
 
+  const fetchMovies = async () => {
+    setIsLoading(true);
+    try {
+      let url = 'https://api.themoviedb.org/3';
+      
+      if (selectedGenre === 'all') {
+        url += '/movie/popular';
+      } else {
+        url += '/discover/movie';
+      }
+
+      const params = new URLSearchParams({
+        api_key: apiKey,
+        language: 'ko-KR',
+        page: 1,
+      });
+
+      if (selectedGenre !== 'all') {
+        params.append('with_genres', selectedGenre);
+      }
+
+      if (selectedYear !== 'all') {
+        params.append('primary_release_year', selectedYear);
+      }
+
+      const response = await fetch(`${url}?${params.toString()}`);
+      const data = await response.json();
+      setMovies(data.results);
+    } catch (error) {
+      console.error('Error fetching movies:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMovies();
+  }, [selectedGenre, selectedYear]); // 장르나 연도가 변경될 때마다 다시 fetch
+
+  const handleViewChange = (view) => {
+    setCurrentView(view);
+    if (view === 'grid') {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-netflix-black pt-16 px-4 md:px-8">
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center 
-        space-y-4 md:space-y-0 mb-8">
+      <div className="flex flex-col md:flex-row justify-between items-start 
+        md:items-center space-y-4 md:space-y-0 mb-8">
         <h1 className="text-2xl md:text-3xl font-bold text-white">
           대세 콘텐츠
         </h1>
 
         <div className="flex items-center space-x-4 w-full md:w-auto">
-          {/* Filter Button (Mobile) */}
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="md:hidden flex items-center space-x-2 bg-gray-800 hover:bg-gray-700 
-            text-white px-4 py-2 rounded-md transition-colors"
-          >
-            <FontAwesomeIcon icon={faFilter} />
-            <span>필터</span>
-          </button>
-
           {/* View Toggle Buttons */}
           <div className="flex space-x-2 ml-auto md:ml-0">
             <button
-              onClick={() => setView('grid')}
+              onClick={() => handleViewChange('grid')}
               className={`p-2 rounded-md transition-colors ${
                 currentView === 'grid'
                   ? 'bg-netflix-red text-white'
@@ -87,7 +101,7 @@ const HomePopular = () => {
               <FontAwesomeIcon icon={faTh} />
             </button>
             <button
-              onClick={() => setView('list')}
+              onClick={() => handleViewChange('list')}
               className={`p-2 rounded-md transition-colors ${
                 currentView === 'list'
                   ? 'bg-netflix-red text-white'
@@ -102,10 +116,10 @@ const HomePopular = () => {
       </div>
 
       {/* Filters Section */}
-      <div className={`mb-6 ${showFilters ? 'block' : 'hidden md:block'}`}>
+      <div className="mb-6">
         <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
           {/* Genre Filter */}
-          <div className="relative group w-full md:w-48">
+          <div className="relative w-full md:w-48">
             <select
               value={selectedGenre}
               onChange={(e) => setSelectedGenre(e.target.value)}
@@ -126,7 +140,7 @@ const HomePopular = () => {
           </div>
 
           {/* Year Filter */}
-          <div className="relative group w-full md:w-48">
+          <div className="relative w-full md:w-48">
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(e.target.value)}
@@ -150,34 +164,22 @@ const HomePopular = () => {
 
       {/* Content Section */}
       <div className="transition-all duration-300">
-        {currentView === 'grid' ? (
-          <MovieGrid 
-            fetchUrl={`https://api.themoviedb.org/3/movie/popular?api_key=${apiKey}&language=ko-KR${
-              selectedGenre !== 'all' ? `&with_genres=${selectedGenre}` : ''
-            }${
-              selectedYear !== 'all' ? `&year=${selectedYear}` : ''
-            }`}
-          />
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-netflix-red" />
+          </div>
         ) : (
-          <MovieInfiniteScroll 
-            genreCode={selectedGenre}
-            apiKey={apiKey}
-            year={selectedYear}
-          />
+          currentView === 'grid' ? (
+            <MovieGrid movies={movies} />
+          ) : (
+            <MovieInfiniteScroll 
+              genreCode={selectedGenre}
+              year={selectedYear}
+              apiKey={apiKey}
+            />
+          )
         )}
       </div>
-
-      {/* Back to Top Button */}
-      <button
-        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        className="fixed bottom-8 right-8 bg-netflix-red hover:bg-red-700 
-        text-white w-12 h-12 rounded-full shadow-lg transition-all duration-300 
-        transform hover:scale-110 flex items-center justify-center z-50
-        opacity-0 hover:opacity-100 focus:opacity-100 md:opacity-100"
-        aria-label="맨 위로 스크롤"
-      >
-        ↑
-      </button>
     </div>
   );
 };
