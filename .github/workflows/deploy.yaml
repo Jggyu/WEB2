@@ -24,6 +24,11 @@ jobs:
       - name: Build project
         run: npm run build
 
+      - name: Configure Git user
+        run: |
+          git config --global user.email "zmfltmvl@hotmail.co.kr"
+          git config --global user.name "Jggyu"
+
       - name: Deploy to GitHub Pages
         run: npm run deploy
         env:
