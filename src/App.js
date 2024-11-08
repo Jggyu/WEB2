@@ -1,65 +1,106 @@
+// src/App.js
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from './hooks/useAuth';
+
+// Layout Components
 import Header from './components/layout/Header';
+
+// Page Components
 import HomeMain from './components/home/HomeMain';
 import HomePopular from './components/home/HomePopular';
 import HomeSearch from './components/home/HomeSearch';
 import HomeWishlist from './components/home/HomeWishlist';
 import SignIn from './components/auth/SignIn';
-import PrivateRoute from './components/auth/PrivateRoute';
-import './App.css';
+
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated } = useAuth();
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/signin" replace />;
+  }
+
+  return children;
+};
+
+// Layout Component with Header
+const MainLayout = ({ children }) => {
+  return (
+    <div className="min-h-screen bg-netflix-black">
+      <Header />
+      <main className="pt-16">
+        {children}
+      </main>
+    </div>
+  );
+};
 
 const App = () => {
   return (
     <Router>
-      <div className="app">
+      <div className="font-sans text-white bg-netflix-black min-h-screen">
         <Routes>
+          {/* Public Route */}
           <Route path="/signin" element={<SignIn />} />
-          <Route 
-            path="/" 
+
+          {/* Protected Routes */}
+          <Route
+            path="/"
             element={
-              <PrivateRoute>
-                <>
-                  <Header />
+              <ProtectedRoute>
+                <MainLayout>
                   <HomeMain />
-                </>
-              </PrivateRoute>
-            } 
+                </MainLayout>
+              </ProtectedRoute>
+            }
           />
-          <Route 
-            path="/popular" 
+
+          <Route
+            path="/popular"
             element={
-              <PrivateRoute>
-                <>
-                  <Header />
+              <ProtectedRoute>
+                <MainLayout>
                   <HomePopular />
-                </>
-              </PrivateRoute>
-            } 
+                </MainLayout>
+              </ProtectedRoute>
+            }
           />
-          <Route 
-            path="/search" 
+
+          <Route
+            path="/search"
             element={
-              <PrivateRoute>
-                <>
-                  <Header />
+              <ProtectedRoute>
+                <MainLayout>
                   <HomeSearch />
-                </>
-              </PrivateRoute>
-            } 
+                </MainLayout>
+              </ProtectedRoute>
+            }
           />
-          <Route 
-            path="/wishlist" 
+
+          <Route
+            path="/wishlist"
             element={
-              <PrivateRoute>
-                <>
-                  <Header />
+              <ProtectedRoute>
+                <MainLayout>
                   <HomeWishlist />
-                </>
-              </PrivateRoute>
-            } 
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Catch all route - redirect to home */}
+          <Route
+            path="*"
+            element={<Navigate to="/" replace />}
           />
         </Routes>
+
+        {/* Global Loading Indicator */}
+        <div id="loading-portal" />
+        
+        {/* Global Modal Portal */}
+        <div id="modal-portal" />
       </div>
     </Router>
   );

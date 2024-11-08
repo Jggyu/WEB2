@@ -1,6 +1,6 @@
+// src/components/common/MovieGrid.js
 import React, { useState, useEffect, useRef } from 'react';
 import { useWishlist } from '../../hooks/useWishlist';
-import './MovieGrid.css';
 
 const MovieGrid = ({ fetchUrl }) => {
   const [movies, setMovies] = useState([]);
@@ -40,14 +40,12 @@ const MovieGrid = ({ fetchUrl }) => {
     if (gridContainerRef.current) {
       const container = gridContainerRef.current;
       const containerWidth = container.offsetWidth;
-      const containerHeight = window.innerHeight - container.offsetTop;
-      const movieCardWidth = window.innerWidth <= 768 ? 90 : 200;
-      const movieCardHeight = window.innerWidth <= 768 ? 150 : 220;
-      const horizontalGap = window.innerWidth <= 768 ? 10 : 15;
-      const verticalGap = -10;
-
+      const movieCardWidth = window.innerWidth <= 768 ? 120 : 200;
+      const horizontalGap = window.innerWidth <= 768 ? 10 : 20;
+      
       const newRowSize = Math.floor(containerWidth / (movieCardWidth + horizontalGap));
-      const maxRows = Math.floor(containerHeight / (movieCardHeight + verticalGap));
+      const maxRows = Math.floor((window.innerHeight - container.offsetTop) / 
+        (window.innerWidth <= 768 ? 180 : 300));
       
       setRowSize(newRowSize);
       setMoviesPerPage(newRowSize * maxRows);
@@ -69,55 +67,97 @@ const MovieGrid = ({ fetchUrl }) => {
     }, []);
   };
 
-  const getTotalPages = () => {
-    return Math.ceil(movies.length / moviesPerPage);
-  };
+  const getTotalPages = () => Math.ceil(movies.length / moviesPerPage);
 
   return (
-    <div className="movie-grid" ref={gridContainerRef}>
-      <div className="grid-container">
+    <div 
+      className="min-h-[calc(100vh-200px)] mt-8 mb-10 px-4"
+      ref={gridContainerRef}
+    >
+      <div className="flex flex-col items-center">
+        {/* Movie Grid */}
         {getVisibleMovies().map((movieGroup, groupIndex) => (
           <div 
-            key={groupIndex} 
-            className={`movie-row ${movieGroup.length === rowSize ? 'full' : ''}`}
+            key={groupIndex}
+            className="flex justify-center w-full mb-5 flex-wrap gap-4"
           >
             {movieGroup.map(movie => (
-              <div 
+              <div
                 key={movie.id}
-                className="movie-card"
+                className="relative group cursor-pointer transition-transform duration-300 
+                hover:scale-105 md:w-[200px] w-[120px]"
                 onClick={() => toggleWishlist(movie)}
               >
-                <img 
-                  src={`https://image.tmdb.org/t/p/w300${movie.poster_path}`}
-                  alt={movie.title}
-                />
-                <div className="movie-title">{movie.title}</div>
+                {/* Movie Poster */}
+                <div className="aspect-[2/3] overflow-hidden rounded-lg">
+                  <img
+                    src={`https://image.tmdb.org/t/p/w300${movie.poster_path}`}
+                    alt={movie.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
+                {/* Wishlist Indicator */}
                 {isInWishlist(movie.id) && (
-                  <div className="wishlist-indicator">👍</div>
+                  <div className="absolute top-2 right-2 bg-netflix-red/50 
+                  shadow-lg shadow-netflix-red/30 rounded-full p-1 text-white">
+                    👍
+                  </div>
                 )}
+
+                {/* Movie Title */}
+                <h3 className="mt-2 text-sm text-center text-gray-200 truncate px-2">
+                  {movie.title}
+                </h3>
+
+                {/* Hover Info */}
+                <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100
+                transition-opacity duration-300 flex items-center justify-center p-4 rounded-lg">
+                  <p className="text-xs text-center text-white">
+                    {movie.overview?.slice(0, 100)}...
+                  </p>
+                </div>
               </div>
             ))}
           </div>
         ))}
-      </div>
 
-      {getTotalPages() > 1 && (
-        <div className="pagination">
-          <button
-            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-            disabled={currentPage === 1}
-          >
-            이전
-          </button>
-          <span>{currentPage} / {getTotalPages()}</span>
-          <button
-            onClick={() => setCurrentPage(prev => Math.min(getTotalPages(), prev + 1))}
-            disabled={currentPage === getTotalPages()}
-          >
-            다음
-          </button>
-        </div>
-      )}
+        {/* Pagination */}
+        {getTotalPages() > 1 && (
+          <div className="flex items-center gap-4 mt-6">
+            <button
+              className="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-700
+              disabled:opacity-50 disabled:cursor-not-allowed transition"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+            >
+              이전
+            </button>
+            
+            <span className="text-gray-300">
+              {currentPage} / {getTotalPages()}
+            </span>
+            
+            <button
+              className="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-700
+              disabled:opacity-50 disabled:cursor-not-allowed transition"
+              onClick={() => setCurrentPage(prev => Math.min(getTotalPages(), prev + 1))}
+              disabled={currentPage === getTotalPages()}
+            >
+              다음
+            </button>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {movies.length === 0 && (
+          <div className="flex items-center justify-center h-[50vh]">
+            <p className="text-gray-500 text-lg">
+              영화를 불러오는 중입니다...
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

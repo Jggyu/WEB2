@@ -1,38 +1,39 @@
 import { useState, useEffect } from 'react';
 
+const WISHLIST_KEY = 'movieWishlist';
+
 export const useWishlist = () => {
-  const [wishlist, setWishlist] = useState([]);
+  const [wishlist, setWishlist] = useState(() => {
+    const saved = localStorage.getItem(WISHLIST_KEY);
+    return saved ? JSON.parse(saved) : [];
+  });
 
   useEffect(() => {
-    const storedWishlist = localStorage.getItem('movieWishlist');
-    if (storedWishlist) {
-      setWishlist(JSON.parse(storedWishlist));
-    }
-  }, []);
-
-  const saveWishlist = (newWishlist) => {
-    localStorage.setItem('movieWishlist', JSON.stringify(newWishlist));
-    setWishlist(newWishlist);
-  };
+    localStorage.setItem(WISHLIST_KEY, JSON.stringify(wishlist));
+  }, [wishlist]);
 
   const toggleWishlist = (movie) => {
-    const currentWishlist = [...wishlist];
-    const index = currentWishlist.findIndex(item => item.id === movie.id);
-
-    if (index === -1) {
-      saveWishlist([...currentWishlist, movie]);
-    } else {
-      saveWishlist(currentWishlist.filter(item => item.id !== movie.id));
-    }
+    setWishlist(prev => {
+      const exists = prev.some(item => item.id === movie.id);
+      if (exists) {
+        return prev.filter(item => item.id !== movie.id);
+      }
+      return [...prev, movie];
+    });
   };
 
   const isInWishlist = (movieId) => {
-    return wishlist.some(item => item.id === movieId);
+    return wishlist.some(movie => movie.id === movieId);
+  };
+
+  const clearWishlist = () => {
+    setWishlist([]);
   };
 
   return {
     wishlist,
     toggleWishlist,
-    isInWishlist
+    isInWishlist,
+    clearWishlist,
   };
 };

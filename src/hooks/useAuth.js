@@ -1,55 +1,56 @@
 import { useState, useEffect } from 'react';
+import { authService } from '../services/authService';
 
 export const useAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('TMDb-Key');
-    setIsAuthenticated(!!token);
+    checkAuth();
   }, []);
 
-  const login = async (email, password) => {
-    return new Promise((resolve, reject) => {
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-      const user = users.find(u => u.id === email && u.password === password);
+  const checkAuth = () => {
+    const isAuth = authService.isAuthenticated();
+    setIsAuthenticated(isAuth);
+    if (isAuth) {
+      setUser(authService.getUser());
+    }
+    setLoading(false);
+  };
 
-      if (user) {
-        localStorage.setItem('TMDb-Key', user.password);
-        setIsAuthenticated(true);
-        resolve(user);
-      } else {
-        reject(new Error('Login failed'));
-      }
-    });
+  const login = async (email, password) => {
+    try {
+      const user = await authService.login(email, password);
+      setIsAuthenticated(true);
+      setUser(user);
+      return user;
+    } catch (error) {
+      setIsAuthenticated(false);
+      setUser(null);
+      throw error;
+    }
   };
 
   const register = async (email, password) => {
-    return new Promise((resolve, reject) => {
-      try {
-        const users = JSON.parse(localStorage.getItem('users') || '[]');
-        const userExists = users.some(user => user.id === email);
-
-        if (userExists) {
-          throw new Error('User already exists');
-        }
-
-        const newUser = { id: email, password };
-        users.push(newUser);
-        localStorage.setItem('users', JSON.stringify(users));
-        resolve();
-      } catch (err) {
-        reject(err);
-      }
-    });
+    try {
+      const user = await authService.register(email, password);
+      return user;
+    } catch (error) {
+      throw error;
+    }
   };
 
   const logout = () => {
-    localStorage.removeItem('TMDb-Key');
+    authService.logout();
     setIsAuthenticated(false);
+    setUser(null);
   };
 
   return {
     isAuthenticated,
+    user,
+    loading,
     login,
     register,
     logout
